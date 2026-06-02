@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ru" data-bs-theme="light">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayByKey — DashBoard</title>
+    <link href="/static/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chango&display=swap" rel="stylesheet">
+    <script src="/static/plotly.min.js"></script>
+</head>
+<body>
+<nav class="navbar navbar-expand py-0">
+    <div class="container-fluid px-4">
+        <span class="navbar-brand mb-0 h1">PayByKey</span>
+        <button class="btn btn-sm btn-outline-secondary" id="theme-toggle" title="Переключить тему">
+            🌙
+        </button>
+    </div>
+</nav>
+
+{% set error = request.query_params.get('error') %}
+{% if error == 'invalid_csv' %}
+<div class="alert alert-warning alert-dismissible fade show mb-0 rounded-0" role="alert">
+    Invalid CSV format — file not loaded.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% elif error == 'file_too_large' %}
+<div class="alert alert-warning alert-dismissible fade show mb-0 rounded-0" role="alert">
+    File too large — maximum 50 MB.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% elif error == 'too_many_requests' %}
+<div class="alert alert-warning alert-dismissible fade show mb-0 rounded-0" role="alert">
+    Too many uploads — try again in a minute.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="container-fluid px-2 px-md-4 py-1 py-md-2">
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body pb-1">
+            <!-- Filters form (empty shell — controls attached via form= attribute) -->
+            <form method="get" action="/" id="filters-form"></form>
+
+            <!-- Row 1: three columns -->
+            <div class="row g-3 mb-2">
+                <!-- Column 1: checkboxes -->
+                <div class="col-md-4">
+                    <label class="form-label text-muted">Models</label>
+                    <div class="d-flex gap-2 mb-4">
+                        {% for m in all_models %}
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" name="models" form="filters-form" value="{{ m }}" id="models_{{ loop.index }}" {% if m in (selected_models or []) %}checked{% endif %}>
+                                <label class="form-check-label" for="models_{{ loop.index }}">{{ m }}</label>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <label class="form-label text-muted">Types</label>
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+                        {% for t in all_types %}
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" name="types" form="filters-form" value="{{ t }}" id="types_{{ loop.index }}" {% if t in (selected_types or []) %}checked{% endif %}>
+                                <label class="form-check-label" for="types_{{ loop.index }}">{{ t }}</label>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <label class="form-label text-muted">API Keys</label>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        {% for k in all_api_keys %}
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" name="api_keys" form="filters-form" value="{{ k }}" id="keys_{{ loop.index }}" {% if k in (selected_api_keys or []) %}checked{% endif %}>
+                                <label class="form-check-label" for="keys_{{ loop.index }}">{{ k }}</label>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <!-- Column 2: dates -->
+                <div class="col-md-4">
+                    <label class="form-label text-muted">Month</label>
+                    <select name="file" form="filters-form" class="form-select mb-2">
+                        {% for fname, label in files %}
+                            <option value="{{ fname }}" {% if fname == selected_file %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <label class="form-label text-muted">From</label>
+                    <input type="date" name="date_from" form="filters-form" class="form-control mb-2" value="{{ selected_date_from or '' }}">
+                    <label class="form-label text-muted">To</label>
+                    <input type="date" name="date_to" form="filters-form" class="form-control" value="{{ selected_date_to or '' }}">
+                </div>
+                <!-- Column 3: upload -->
+                <div class="col-md-4 d-flex flex-column">
+                    <form method="post" action="/upload" enctype="multipart/form-data">
+                        <label class="form-label text-muted">Upload CSV</label>
+                        <input type="file" name="file" accept=".csv" class="form-control mb-2">
+                        <button type="submit" class="btn btn-outline-primary w-100">Upload</button>
+                    </form>
+                    <button type="submit" form="filters-form" class="btn btn-primary w-100 mt-auto mb-2-5">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results: everything that updates via AJAX -->
+    <div id="results">
+        <!-- KPI Cards -->
+        <div class="row g-3 mb-3" id="kpi-cards">
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-2">
+                        <h5 class="text-muted">Total Cost</h5>
+                        <h3 class="mb-0">CNY{{ "%.2f"|format(metrics.total_cost) }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-2">
+                        <h5 class="text-muted">Total Requests</h5>
+                        <h3 class="mb-0">{{ "{:,}".format(metrics.total_requests) }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-2">
+                        <h5 class="text-muted">Total Tokens</h5>
+                        <h3 class="mb-0">{{ "{:,}".format(metrics.total_tokens) }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-2">
+                        <h5 class="text-muted">Cache Hit Rate</h5>
+                        <h3 class="mb-0" id="cache-hit-value">
+                            {% if metrics.cache_hit_rate is not none %}
+                                {{ "%.1f"|format(metrics.cache_hit_rate) }}%
+                            {% else %}
+                                —
+                            {% endif %}
+                        </h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="row g-3 mb-3" id="charts-area">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="text-muted">Daily Cost by Model</h5>
+                        <div id="chart-model">{{ daily_cost_by_model_chart | safe }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="text-muted">Cost by API Key</h5>
+                        <div id="chart-apikey">{{ cost_by_api_key_chart | safe }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="text-muted">Daily Cost by Type</h5>
+                        <div id="chart-type">{{ daily_cost_by_type_chart | safe }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="text-muted">Daily Cache Hit Rate</h5>
+                        <div id="chart-cache">{{ daily_cache_hit_rate_chart | safe }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detail Table -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h5 class="text-muted">Detail</h5>
+                <div id="detail-block">
+                    {% include "detail_partial.html" %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const html = document.documentElement;
+    const toggleBtn = document.getElementById("theme-toggle");
+    const filtersForm = document.getElementById("filters-form");
+    let abortController = null;
+
+    // Theme
+    function getTheme() {
+        return localStorage.getItem("theme") || "light";
+    }
+    function setTheme(theme) {
+        html.setAttribute("data-bs-theme", theme);
+        localStorage.setItem("theme", theme);
+        toggleBtn.textContent = theme === "dark" ? "☀️" : "🌙";
+    }
+    setTheme(getTheme());
+
+    // If saved theme is dark, reload charts in dark mode (initial render is light)
+    if (getTheme() === "dark") {
+        const q = buildQuery();
+        loadResults(q);
+    }
+
+    toggleBtn.addEventListener("click", function () {
+        setTheme(getTheme() === "dark" ? "light" : "dark");
+        // Reload charts with new theme
+        const q = buildQuery();
+        loadResults(q);
+    });
+
+    function buildQuery(extraPage) {
+        const fd = new FormData(filtersForm);
+        const params = new URLSearchParams();
+        for (const [key, value] of fd.entries()) {
+            params.append(key, value);
+        }
+        params.append("theme", getTheme());
+        if (extraPage !== undefined) {
+            params.set("page", extraPage);
+        }
+        return params.toString();
+    }
+
+    function formatNum(n) {
+        return n != null ? n.toLocaleString("en") : "—";
+    }
+
+    function setHTML(el, html) {
+        el.innerHTML = html;
+        el.querySelectorAll("script").forEach(function (old) {
+            const s = document.createElement("script");
+            if (old.src) s.src = old.src;
+            s.textContent = old.textContent;
+            old.replaceWith(s);
+        });
+    }
+
+    async function loadResults(query) {
+        if (abortController) abortController.abort();
+        abortController = new AbortController();
+
+        ["chart-model", "chart-type", "chart-apikey", "chart-cache"].forEach(function (id) {
+            document.getElementById(id).classList.add("loading");
+        });
+        try {
+            const resp = await fetch("/api/dashboard?" + query, { signal: abortController.signal });
+            if (!resp.ok) throw new Error("HTTP " + resp.status);
+            const data = await resp.json();
+
+            document.querySelector("#kpi-cards .col-md-3:nth-child(1) h3").textContent = "CNY" + data.kpi.total_cost.toFixed(2);
+            document.querySelector("#kpi-cards .col-md-3:nth-child(2) h3").textContent = formatNum(data.kpi.total_requests);
+            document.querySelector("#kpi-cards .col-md-3:nth-child(3) h3").textContent = formatNum(data.kpi.total_tokens);
+            const cacheEl = document.querySelector("#kpi-cards .col-md-3:nth-child(4) h3");
+            cacheEl.textContent = data.kpi.cache_hit_rate != null ? data.kpi.cache_hit_rate.toFixed(1) + "%" : "—";
+
+            setHTML(document.getElementById("chart-model"), data.charts.cost_by_model);
+            setHTML(document.getElementById("chart-type"), data.charts.cost_by_type);
+            setHTML(document.getElementById("chart-apikey"), data.charts.cost_by_api_key);
+            setHTML(document.getElementById("chart-cache"), data.charts.cache_hit_rate);
+
+            setHTML(document.getElementById("detail-block"), data.detail_html);
+
+        } catch (err) {
+            if (err.name !== "AbortError") {
+                console.error("AJAX error:", err);
+            }
+            return;
+        }
+        ["chart-model", "chart-type", "chart-apikey", "chart-cache"].forEach(function (id) {
+            document.getElementById(id).classList.remove("loading");
+        });
+    }
+
+    filtersForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        const query = buildQuery(1);
+        history.replaceState(null, "", "/?" + query);
+        loadResults(query);
+    });
+
+    document.addEventListener("click", function (e) {
+        const btn = e.target.closest(".pag-btn");
+        if (!btn || btn.disabled) return;
+        e.preventDefault();
+        const query = buildQuery(btn.dataset.page);
+        history.replaceState(null, "", "/?" + query);
+        loadResults(query);
+    });
+})();
+</script>
+</body>
+</html>

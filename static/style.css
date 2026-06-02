@@ -1,0 +1,67 @@
+body {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.form-label {
+    font-size: 1.2rem;
+}
+
+.navbar-brand {
+    font-size: 3rem;
+    font-weight: 700;
+    transform: scaleX(1.8);
+    display: inline-block;
+    transform-origin: left;
+    white-space: normal;
+    overflow-wrap: break-word;
+}
+
+.mb-2-5 {
+    margin-bottom: 0.75rem;
+}
+
+@media (max-width: 900px) {
+    .navbar-brand {
+        transform: scaleX(1);
+    }
+}
+
+.brand-font {
+    font-family: 'Oakside', serif !important;
+}
+
+.card {
+    border-radius: 8px;
+}
+
+.table td, .table th {
+    vertical-align: middle;
+}
+
+[data-bs-theme="dark"] .card {
+    background-color: #1e1e1e;
+}
+
+[data-bs-theme="dark"] .form-check-label,
+[data-bs-theme="dark"] .text-muted {
+    color: #aaa !important;
+}
+
+[data-bs-theme="dark"] body {
+    background-color: #121212;
+}
+
+[data-bs-theme="dark"] thead th {
+    background-color: #2d2d2d;
+    color: #ccc;
+}
+
+#charts-area .card-body > div {
+    transition: opacity 0.7s ease;
+}
+
+#charts-area .card-body > div.loading {
+    opacity: 0;
+    transition: opacity 0.01ms;
+}

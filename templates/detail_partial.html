@@ -1,0 +1,42 @@
+<div class="table-responsive">
+    <table class="table table-sm table-hover">
+        <thead class="table-light">
+        <tr>
+            <th>Date</th>
+            <th>Model</th>
+            <th>Type</th>
+            <th>API Key</th>
+            <th class="text-end">Amount</th>
+            <th class="text-end">Price</th>
+            <th class="text-end">Cost</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for row in detail_page.itertuples() %}
+            <tr>
+                <td>{{ row.utc_date.strftime("%Y-%m-%d") }}</td>
+                <td>{{ row.model }}</td>
+                <td>{{ row.type }}</td>
+                <td>{{ row.api_key_name }}</td>
+                <td class="text-end">{{ "{:,}".format(row.amount) }}</td>
+                <td class="text-end">
+                    {% if row.price is not none %}
+                        {{ ("%.10f"|format(row.price)).rstrip("0").rstrip(".") }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td class="text-end">CNY{{ "%.6f"|format(row.cost) }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+<div class="d-flex justify-content-between align-items-center mt-2">
+    <span class="text-muted small">Total rows: {{ "{:,}".format(total_rows) }}</span>
+    <div class="btn-group">
+        <button type="button" data-page="{{ current_page - 1 }}" class="btn btn-outline-secondary pag-btn" {% if current_page <= 1 %}disabled{% endif %}>← Prev</button>
+        <span class="btn btn-outline-secondary disabled">{{ current_page }} / {{ total_pages }}</span>
+        <button type="button" data-page="{{ current_page + 1 }}" class="btn btn-outline-secondary pag-btn" {% if current_page >= total_pages %}disabled{% endif %}>Next →</button>
+    </div>
+</div>

@@ -1,0 +1,6 @@
+.idea
+.venv
+additional_simple_scripеs/script.py
+additional_simple_scripеs/script_by_types.py
+__pycache__
+*.pyc
