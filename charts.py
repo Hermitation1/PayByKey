@@ -123,13 +123,21 @@ def create_cache_hit_rate_chart(df: pd.DataFrame, theme: str = "light"):
 
 
 def create_daily_cost_by_api_key_chart(df: pd.DataFrame, theme: str = "light"):
-    fig = px.bar(df, x = "utc_date", y = "cost", color = "api_key_name", barmode = "stack",)
+    fig = px.bar(
+        df,
+        x="utc_date",
+        y="cost",
+        color="api_key_name",
+        barmode="stack",
+    )
     if theme == "dark":
         fig.update_layout(**DARK_THEME)
         fig.update_yaxes(**DARK_THEME_AXES)
         fig.update_xaxes(**DARK_THEME_AXES)
     else:
-        fig.update_layout(template="plotly_white", font=dict(family="Inter, sans-serif", size=14))
+        fig.update_layout(
+            template="plotly_white", font=dict(family="Inter, sans-serif", size=14)
+        )
 
     fig.update_layout(
         margin=dict(l=10, r=10, t=30, b=10),
@@ -144,7 +152,7 @@ def create_daily_cost_by_api_key_chart(df: pd.DataFrame, theme: str = "light"):
         hovermode="x unified",
         height=400,
         xaxis_title=None,
-        yaxis_title = "Cost (CNY)",
+        yaxis_title="Cost (CNY)",
     )
 
     return fig.to_html(full_html=False, include_plotlyjs=False)
