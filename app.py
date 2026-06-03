@@ -16,6 +16,7 @@ from charts import (
     create_daily_cost_by_type_chart,
     create_cost_by_api_key_chart,
     create_cache_hit_rate_chart,
+    create_daily_cost_by_api_key_chart,
 )
 from data_loader import (
     preprocess,
@@ -26,6 +27,7 @@ from data_loader import (
     get_cost_by_api_key,
     get_daily_cache_hit_rate,
     get_detail_table,
+    get_daily_cost_by_api_key,
 )
 
 limiter = Limiter(key_func=get_remote_address)
@@ -108,6 +110,7 @@ def _get_dashboard_data(request: Request) -> dict:
     daily_cost_by_type = get_daily_cost_by_type(df=df)
     cost_by_api_key = get_cost_by_api_key(df=df)
     daily_cache_hit_rate = get_daily_cache_hit_rate(df=df)
+    daily_cost_by_api_key = get_daily_cost_by_api_key(df=df)
 
     daily_cost_by_model_chart = create_daily_cost_by_model_chart(
         daily_cost_by_model, theme=theme
@@ -120,6 +123,9 @@ def _get_dashboard_data(request: Request) -> dict:
     )
     daily_cache_hit_rate_chart = create_cache_hit_rate_chart(
         daily_cache_hit_rate, theme=theme
+    )
+    daily_cost_by_api_key_chart = create_daily_cost_by_api_key_chart(
+        daily_cost_by_api_key, theme=theme
     )
 
     detail_page, total_rows = get_detail_table(df=df, page=page, per_page=50)
@@ -145,6 +151,7 @@ def _get_dashboard_data(request: Request) -> dict:
         "all_api_keys": all_api_keys,
         "all_types": all_types,
         "metrics": metrics,
+        "daily_cost_by_api_key_chart": daily_cost_by_api_key_chart,
         "daily_cost_by_model_chart": daily_cost_by_model_chart,
         "daily_cost_by_type_chart": daily_cost_by_type_chart,
         "cost_by_api_key_chart": cost_by_api_key_chart,
@@ -191,6 +198,7 @@ async def api_dashboard(request: Request):
             else None,
         },
         "charts": {
+            "cost_by_api_key_daily": d["daily_cost_by_api_key_chart"],
             "cost_by_model": d["daily_cost_by_model_chart"],
             "cost_by_type": d["daily_cost_by_type_chart"],
             "cost_by_api_key": d["cost_by_api_key_chart"],

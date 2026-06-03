@@ -153,6 +153,14 @@
             <div class="col-12">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body">
+                        <h5 class="text-muted">Daily Cost by API Key</h5>
+                        <div id="chart-apikey-daily">{{ daily_cost_by_api_key_chart | safe }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
                         <h5 class="text-muted">Daily Cost by Model</h5>
                         <div id="chart-model">{{ daily_cost_by_model_chart | safe }}</div>
                     </div>
@@ -258,7 +266,7 @@
         if (abortController) abortController.abort();
         abortController = new AbortController();
 
-        ["chart-model", "chart-type", "chart-apikey", "chart-cache"].forEach(function (id) {
+        ["chart-apikey-daily", "chart-model", "chart-type", "chart-apikey", "chart-cache"].forEach(function (id) {
             document.getElementById(id).classList.add("loading");
         });
         try {
@@ -272,6 +280,7 @@
             const cacheEl = document.querySelector("#kpi-cards .col-md-3:nth-child(4) h3");
             cacheEl.textContent = data.kpi.cache_hit_rate != null ? data.kpi.cache_hit_rate.toFixed(1) + "%" : "—";
 
+            setHTML(document.getElementById("chart-apikey-daily"), data.charts.cost_by_api_key_daily);
             setHTML(document.getElementById("chart-model"), data.charts.cost_by_model);
             setHTML(document.getElementById("chart-type"), data.charts.cost_by_type);
             setHTML(document.getElementById("chart-apikey"), data.charts.cost_by_api_key);
@@ -285,7 +294,7 @@
             }
             return;
         }
-        ["chart-model", "chart-type", "chart-apikey", "chart-cache"].forEach(function (id) {
+        ["chart-apikey-daily", "chart-model", "chart-type", "chart-apikey", "chart-cache"].forEach(function (id) {
             document.getElementById(id).classList.remove("loading");
         });
     }

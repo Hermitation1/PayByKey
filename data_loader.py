@@ -76,6 +76,10 @@ def get_cost_by_api_key(df: pd.DataFrame) -> pd.DataFrame:
     return df.groupby("api_key_name", as_index=False)["cost"].sum()  # type: ignore
 
 
+def get_daily_cost_by_api_key(df: pd.DataFrame) -> pd.DataFrame:
+    return df.groupby(["utc_date", "api_key_name"], as_index=False)["cost"].sum()  # type: ignore
+
+
 def get_daily_cache_hit_rate(df: pd.DataFrame) -> pd.DataFrame:
     pv = df[
         df["type"].isin(
