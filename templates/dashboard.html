@@ -97,6 +97,7 @@
                         <input type="file" name="file" accept=".csv" class="form-control mb-2">
                         <button type="submit" class="btn btn-outline-primary w-100">Upload</button>
                     </form>
+                    <a href="/" class="btn btn-outline-secondary w-100 reset-btn">Reset filters</a>
                     <button type="submit" form="filters-form" class="btn btn-primary w-100 mt-auto mb-2-5">Apply</button>
                 </div>
             </div>
@@ -297,6 +298,15 @@
     });
 
     document.addEventListener("click", function (e) {
+        const resetBtn = e.target.closest(".reset-btn");
+        if (resetBtn) {
+            e.preventDefault();
+            filtersForm.reset();
+            history.replaceState(null, "", "/");
+            loadResults("theme=" + getTheme());
+            return;
+        }
+
         const btn = e.target.closest(".pag-btn");
         if (!btn || btn.disabled) return;
         e.preventDefault();

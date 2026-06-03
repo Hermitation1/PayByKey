@@ -21,6 +21,10 @@ body {
     margin-bottom: 0.75rem;
 }
 
+.reset-btn {
+    margin-top: 1.35rem;
+}
+
 @media (max-width: 900px) {
     .navbar-brand {
         transform: scaleX(1);
