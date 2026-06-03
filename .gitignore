@@ -5,3 +5,4 @@ __pycache__/
 *.pyc
 .env
 .coverage
+additional_simple_scripts/*.csv
