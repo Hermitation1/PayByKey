@@ -2,6 +2,7 @@ import pandas as pd
 
 
 def preprocess(df: pd.DataFrame):
+    df["utc_date"] = df["utc_date"].astype(str).str.replace("-", "")
     df["utc_date"] = pd.to_datetime(df["utc_date"])
     df["price"] = pd.to_numeric(df["price"], errors="coerce")
     df["amount"] = pd.to_numeric(df["amount"], errors="coerce")

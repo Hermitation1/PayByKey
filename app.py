@@ -1,4 +1,5 @@
 import pathlib
+import logging
 from contextlib import asynccontextmanager
 
 import pandas as pd
@@ -30,6 +31,7 @@ from data_loader import (
     get_daily_cost_by_api_key,
 )
 
+logger = logging.getLogger(__name__)
 limiter = Limiter(key_func=get_remote_address)
 templates = Jinja2Templates(directory="templates")
 
@@ -222,6 +224,7 @@ async def upload_csv(request: Request, file: UploadFile = File(...)):
         try:
             app.state.cache[csv_name] = preprocess(pd.read_csv(csv_path))
         except Exception:
+            logger.exception("Ошибка при обработке CSV")
             pathlib.Path(csv_path).unlink(missing_ok=True)
             return RedirectResponse("/?error=invalid_csv", status_code=303)
 
